@@ -21,7 +21,35 @@ intactos. Ajustei apenas `max-width` (34ch → 30ch mobile, 37ch → 34ch deskto
 e `text-wrap: pretty`, porque a frase nova deixava **"mercados." órfão** na
 terceira linha. Agora quebra equilibrada em todos os viewports.
 
-## ALIGNMENT — 01 / 02
+## ALIGNMENT — 01 / 02 (v5, correção definitiva)
+
+**Diagnóstico:** matematicamente a caixa do numeral já estava centrada (+0,5px),
+mas visualmente aparecia baixa. A causa não era o layout — era o **meio-leading
+da fonte mono**: a caixa tinha 11px de altura e o glifo ocupava só a metade
+superior, deixando espaço vazio abaixo. Centrar a caixa não centra o glifo.
+
+**Correção estrutural**, exatamente como especificado:
+```css
+.zone{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center }
+.zone .n{ display:flex; align-items:center; justify-content:center; align-self:stretch;
+          line-height:1 }   /* remove o meio-leading */
+.zone .tx{ display:flex; flex-direction:column; justify-content:center }
+.zone .ar{ display:flex; align-items:center; align-self:center }
+```
+
+O `translateY(1px)` anterior foi **removido** — não há mais deslocamento
+arbitrário. O `line-height:1` resolve na origem.
+
+**Medido pelo bounding box do GLIFO** (via `Range`), não da caixa:
+
+| Viewport | 01 | 02 |
+|---|---|---|
+| 375 · 390 · 393 · 430 · 768 · 1366 · 1440 · 1920 | −0,5px | −0,5px |
+
+Mesma regra para os dois, sem ajuste individual. Confirmado visualmente com
+ampliação 3× e linha-guia no centro exato de cada bloco.
+
+## ALIGNMENT — histórico
 
 **Medido antes:** índice **−15px** no mobile e **−19px** no desktop, fora do
 centro do conteúdo. Causa: `align-self: flex-start` + `padding-top: 3px`.

@@ -135,7 +135,7 @@ a{color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
 @media(min-width:1024px){.zones{margin-top:0;border-top:none;border-left:1px solid var(--line)}}
 
 .zone{position:relative;
-  display:grid;grid-template-columns:auto 1fr auto;align-items:center;
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;
   column-gap:var(--s4);
   padding:var(--s5) var(--s1) var(--s5) 0;
   border-bottom:1px solid var(--line);overflow:hidden;isolation:isolate;
@@ -157,19 +157,21 @@ a{color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
   transform:translateX(-100%);transition:transform var(--t-slow) var(--e-p)}
 @media(min-width:1024px){.zone::before{margin-left:calc(var(--s6) * -1)}}
 
-.zone .n{font-family:var(--m);font-size:10px;letter-spacing:.16em;color:var(--i4);
+.zone .n{display:flex;align-items:center;justify-content:center;align-self:stretch;
   width:20px;
-  /* correção óptica: numeral mono tem altura-x menor que o bloco de
-     texto ao lado. 1px compensa o peso visual, não é magic number. */
-  transform:translateY(1px);
+  font-family:var(--m);font-size:10px;letter-spacing:.16em;color:var(--i4);
+  /* line-height 1 remove o meio-leading da fonte mono, que empurrava
+     o glifo para baixo dentro da própria caixa. */
+  line-height:1;
   transition:color var(--t-base) var(--e-s)}
-.zone .tx{min-width:0}
+.zone .tx{display:flex;flex-direction:column;justify-content:center;min-width:0}
 .zone .lb{display:block;font-size:clamp(16.5px,4.4vw,20px);font-weight:600;letter-spacing:-.03em;
   line-height:1.22;text-wrap:balance;transition:transform var(--t-base) var(--e-p)}
 @media(min-width:1024px){.zone .lb{font-size:23px}}
 .zone .ht{display:block;margin-top:var(--s1);font-size:12.5px;line-height:1.42;color:var(--i3);
   transition:color var(--t-base) var(--e-s),transform var(--t-base) var(--e-p)}
-.zone .ar{width:22px;height:22px;color:var(--i4);
+.zone .ar{display:flex;align-items:center;justify-content:center;align-self:center;
+  width:22px;height:22px;color:var(--i4);
   transition:transform var(--t-base) var(--e-p),color var(--t-base) var(--e-s)}
 .zone .ar svg{width:100%;height:100%}
 
