@@ -30,8 +30,8 @@ export default function Page() {
             </h1>
 
             <p className="support">
-              Estratégia, tecnologia e performance para operações
-              que não vieram disputar o segundo lugar.
+              Estratégia, tecnologia e performance para empresas
+              que querem liderar seus mercados.
             </p>
           </div>
 

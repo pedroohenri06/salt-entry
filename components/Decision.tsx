@@ -12,6 +12,15 @@ export default function Decision() {
 
   useEffect(() => { track('entry_view'); }, []);
 
+  /* libera o controle de opacidade após a coreografia de entrada,
+     para que hover e estado de saída funcionem */
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      document.querySelector('.zones')?.classList.add('ready');
+    }, 1450);
+    return () => window.clearTimeout(t);
+  }, []);
+
   useEffect(() => {
     document.querySelector('.stage')?.classList.toggle('leaving', !!chosen);
   }, [chosen]);

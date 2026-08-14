@@ -4,10 +4,10 @@ import './globals.css';
 export const metadata: Metadata = {
   metadataBase: new URL('https://salt-entry.vercel.app'),
   title: 'Salt — Entry',
-  description: 'Estratégia, tecnologia e performance para operações que não vieram disputar o segundo lugar.',
+  description: 'Estratégia, tecnologia e performance para empresas que querem liderar seus mercados.',
   openGraph: {
     title: 'Salt — Entry',
-    description: 'Estratégia, tecnologia e performance para operações que não vieram disputar o segundo lugar.',
+    description: 'Estratégia, tecnologia e performance para empresas que querem liderar seus mercados.',
     type: 'website',
     locale: 'pt_BR',
     siteName: 'Salt',
