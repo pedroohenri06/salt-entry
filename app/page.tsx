@@ -2,38 +2,47 @@
 import Atmosphere from '@/components/Atmosphere';
 import Decision from '@/components/Decision';
 
-/* Server component. O HTML inicial já contém marca, headline e
-   as duas ações — nada espera JavaScript para existir. */
+/* Server component. O HTML inicial já contém marca, posicionamento,
+   headline e as duas rotas — nada espera JavaScript.
+   Nenhum dado institucional que o cliente não forneceu. */
 export default function Page() {
   return (
     <>
       <Atmosphere />
       <main className="stage">
-        <header className="sys">
-          <span>Salt</span>
-          <span className="rule" />
-          <span>Entry</span>
+        <header className="top">
+          <span className="id">Salt</span>
+          <span className="rl" />
+          <span className="id">Entry</span>
         </header>
 
         <div className="body">
           <div>
-            <img className="brand" src="/brand/salt-word.webp" alt="Salt"
-                 width={520} height={266} fetchPriority="high" />
+            <div className="brandwrap">
+              <img className="brand" src="/brand/salt-word.webp" alt="Salt"
+                   width={620} height={313} fetchPriority="high" />
+              <span className="tagline">Technology Company</span>
+            </div>
+
             <h1 className="claim">
-              <span className="ln"><span>Construímos</span></span>
-              <span className="ln"><span>o que <b>vem depois</b>.</span></span>
+              <span className="l"><span>Construímos</span></span>
+              <span className="l"><span>o que <em className="lit">vem depois</em>.</span></span>
             </h1>
+
             <p className="support">
               Estratégia, tecnologia e performance para operações
               que não vieram disputar o segundo lugar.
             </p>
           </div>
+
+          <div className="spacer" aria-hidden="true" />
+
           <Decision />
         </div>
 
         <footer className="foot">
-          <span>Porto Alegre</span>
-          <span className="r">Est. 2024</span>
+          <span>Salt</span>
+          <span className="r">Technology Company</span>
         </footer>
       </main>
     </>

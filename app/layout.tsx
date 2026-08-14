@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image', title: 'Salt — Entry' },
   robots: { index: true, follow: true },
   alternates: { canonical: '/' },
-  icons: { icon: '/brand/salt-mark.png', apple: '/brand/salt-mark.png' },
+  icons: { icon: '/brand/icon.png', apple: '/brand/icon.png' },
 };
 
 export const viewport: Viewport = {

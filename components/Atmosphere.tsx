@@ -1,14 +1,15 @@
-/* Server component — zero JS no cliente.
-   Uma abordagem de fundo: campo de luz + grão SVG. */
+/* Server component — zero JS.
+   Uma direção só: luz direcional + grão. A posição da luz é
+   variável CSS, inclinada pelas zonas quando recebem foco. */
 export default function Atmosphere() {
   return (
-    <div className="atm" aria-hidden="true">
-      <svg className="grain" preserveAspectRatio="none">
-        <filter id="g">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch" />
+    <div className="field" aria-hidden="true">
+      <svg className="gr" preserveAspectRatio="none">
+        <filter id="n">
+          <feTurbulence type="fractalNoise" baseFrequency="0.92" numOctaves="3" stitchTiles="stitch" />
           <feColorMatrix type="saturate" values="0" />
         </filter>
-        <rect width="100%" height="100%" filter="url(#g)" />
+        <rect width="100%" height="100%" filter="url(#n)" />
       </svg>
     </div>
   );
