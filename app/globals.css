@@ -160,9 +160,12 @@ a{color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
 .zone .n{display:flex;align-items:center;justify-content:center;align-self:stretch;
   width:20px;
   font-family:var(--m);font-size:10px;letter-spacing:.16em;color:var(--i4);
-  /* line-height 1 remove o meio-leading da fonte mono, que empurrava
-     o glifo para baixo dentro da própria caixa. */
-  line-height:1;
+  line-height:1;   /* remove o meio-leading da mono */
+  /* CENTRO ÓPTICO: o título (20px/600/opaco) tem massa visual ~4x
+     a do subtítulo (12,5px/400/52%). Centrar a caixa deixa o índice
+     opticamente baixo. Diferença medida no navegador: 6px.
+     Mesma regra para 01 e 02 — nunca ajuste individual. */
+  transform:translateY(-6px);
   transition:color var(--t-base) var(--e-s)}
 .zone .tx{display:flex;flex-direction:column;justify-content:center;min-width:0}
 .zone .lb{display:block;font-size:clamp(16.5px,4.4vw,20px);font-weight:600;letter-spacing:-.03em;

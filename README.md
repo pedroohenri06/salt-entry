@@ -21,7 +21,35 @@ intactos. Ajustei apenas `max-width` (34ch → 30ch mobile, 37ch → 34ch deskto
 e `text-wrap: pretty`, porque a frase nova deixava **"mercados." órfão** na
 terceira linha. Agora quebra equilibrada em todos os viewports.
 
-## ALIGNMENT — 01 / 02 (v5, correção definitiva)
+## ALIGNMENT — 01 / 02 (v6, definitivo)
+
+**A causa não era layout — era massa visual.** As versões anteriores centraram
+o índice corretamente na CAIXA. Medição no navegador (390×844):
+
+```
+centro do título ........ 651,1
+centro do subtítulo ..... 674,5
+centro GEOMÉTRICO ....... 662,0   ← onde o glifo estava
+centro ÓPTICO ........... 655,8   ← onde o olho espera
+```
+
+Massa visual do título: **25,7** (20px · peso 600 · opaco).
+Massa visual do subtítulo: **6,5** (12,5px · peso 400 · 52% de opacidade).
+
+O título pesa **~4×**. O olho lê massa, não caixa — por isso o índice parecia
+baixo mesmo estando matematicamente centrado. A diferença medida foi de 6px,
+aplicada como deslocamento único e compartilhado pelos dois índices.
+
+Mantida a estrutura de grid da rodada anterior (`auto minmax(0,1fr) auto`,
+`align-items:center`, wrapper do índice com `align-self:stretch` e
+`line-height:1`). O deslocamento é a compensação de centro de massa,
+documentada no CSS — não é magic number nem ajuste individual.
+
+**Validado nos 8 viewports** (375, 390, 393, 430, 768, 1366, 1440, 1920):
+desvio entre −0,4px e +0,1px do centro óptico. Seta em 0,0px do centro do bloco.
+Confirmado visualmente com ampliação 3× e guia no centro de massa.
+
+## ALIGNMENT — histórico (v5, correção definitiva)
 
 **Diagnóstico:** matematicamente a caixa do numeral já estava centrada (+0,5px),
 mas visualmente aparecia baixa. A causa não era o layout — era o **meio-leading
