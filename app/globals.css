@@ -1,218 +1,213 @@
 /* ══════════════════════════════════════════════════════════
-   SALT ENTRY — the digital front door
-   Conceito: A PORTA. Uma linha de luz existe do primeiro
-   frame, abre revelando a marca, e vira o divisor entre as
-   duas decisões. Um gesto só, do começo ao fim.
+   SALT ENTRY v2
+   Direção: REFINED MINIMALISM · EDITORIAL TECHNOLOGY
+
+   SIGNATURE (um só): a marca resolve de desfocada para nítida,
+   como uma lente estabilizando. Tudo ao redor fica quieto.
+
+   Performance: fonte via <link> no head (paralelo, não em série
+   com o CSS). Wordmark em WebP 13KB com preload. Zero JS para
+   qualquer animação.
    ══════════════════════════════════════════════════════════ */
-@font-face{
-  font-family:'Montserrat';font-style:normal;font-weight:400 700;font-display:swap;
-  src:url(https://fonts.gstatic.com/s/montserrat/v29/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtr6Hw5aX8.woff2) format('woff2');
-  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
-}
 
 :root{
-  --black:#000000;
-  --ink-1:#080809;      /* superfície mais alta que o preto puro */
-  --ink-2:#101113;
-  --line:rgba(255,255,255,.09);
-  --line-2:rgba(255,255,255,.16);
-  --ivory:#F3F2EF;
-  --ivory-2:rgba(243,242,239,.62);
-  --ivory-3:rgba(243,242,239,.36);
-  /* accent da marca: existe, quase nunca aparece */
+  color-scheme:dark;
+
+  /* pretos em camadas — o fundo nunca é #000 chapado */
+  --void:#000000;
+  --deep:#050506;
+  --lift:#0B0B0D;
+
+  --ivory:#F4F3F1;
+  --ivory-2:rgba(244,243,241,.74);   /* legível, não apagado */
+  --ivory-3:rgba(244,243,241,.50);
+  --line:rgba(244,243,241,.10);
+  --line-2:rgba(244,243,241,.20);
   --accent:#B7C93E;
 
   --f:'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
   --m:ui-monospace,'SF Mono',Menlo,monospace;
 
-  --fast:160ms; --base:320ms; --slow:640ms; --door:1100ms;
-  --e-in:cubic-bezier(.16,1,.3,1);
-  --e-out:cubic-bezier(.7,0,.84,0);
-  --e-tr:cubic-bezier(.65,0,.35,1);
+  /* MOTION TOKENS */
+  --m-fast:150ms; --m-base:280ms; --m-slow:520ms; --m-brand:900ms;
+  --e-primary:cubic-bezier(.16,1,.3,1);
+  --e-exit:cubic-bezier(.65,0,.85,0);
+  --e-state:cubic-bezier(.4,0,.2,1);
 
-  --gut:24px;
-  --safe-t:env(safe-area-inset-top,0px);
-  --safe-b:env(safe-area-inset-bottom,0px);
+  --gut:22px;
+  --sat:env(safe-area-inset-top,0px);
+  --sab:env(safe-area-inset-bottom,0px);
 }
-@media(min-width:768px){:root{--gut:44px}}
-@media(min-width:1280px){:root{--gut:64px}}
+@media(min-width:768px){:root{--gut:40px}}
+@media(min-width:1280px){:root{--gut:clamp(48px,5vw,88px)}}
 
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%}
 html{-webkit-text-size-adjust:100%}
+html,body{height:100%;background:var(--void)}
 body{
-  background:var(--black);color:var(--ivory);font-family:var(--f);
+  color:var(--ivory);font-family:var(--f);
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-  overflow-x:hidden;letter-spacing:-.01em;
+  text-rendering:optimizeLegibility;overflow-x:hidden;
 }
 a{color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
-button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
-::selection{background:var(--ivory);color:var(--black)}
-
-/* foco visível e elegante — nunca removido */
-:focus-visible{outline:1px solid var(--ivory);outline-offset:3px;border-radius:2px}
+::selection{background:var(--ivory);color:var(--void)}
+:focus-visible{outline:2px solid var(--ivory);outline-offset:4px;border-radius:3px}
 
 /* ══════════════ ATMOSFERA ══════════════
-   Profundidade sem peso: uma queda de luz radial que respira
-   muito devagar + grão em SVG. Nada de imagem repetida.     */
-.atmos{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;
-  animation:atmosIn 1.6s var(--e-in) 80ms forwards}
-.atmos .glow{position:absolute;inset:0;
+   Uma abordagem só: campo de luz radial + grão SVG.
+   Sem JS, sem canvas, sem imagem. Compõe e o navegador esquece. */
+.atm{position:fixed;inset:0;z-index:0;pointer-events:none;contain:strict}
+.atm::before{content:'';position:absolute;inset:0;
   background:
-    radial-gradient(120% 78% at 50% -8%, rgba(255,255,255,.055) 0%, transparent 58%),
-    radial-gradient(90% 60% at 50% 108%, rgba(255,255,255,.028) 0%, transparent 60%);
-  animation:breathe 14s ease-in-out infinite}
-.atmos .vig{position:absolute;inset:0;
-  background:radial-gradient(ellipse 78% 62% at 50% 46%, transparent 40%, rgba(0,0,0,.72) 100%)}
-.atmos .grain{position:absolute;inset:-50%;width:200%;height:200%;opacity:.05;
-  animation:drift 8s steps(6) infinite}
-@keyframes atmosIn{to{opacity:1}}
-@keyframes breathe{0%,100%{opacity:1}50%{opacity:.72}}
-@keyframes drift{
-  0%{transform:translate(0,0)}17%{transform:translate(-2%,1%)}
-  34%{transform:translate(1%,-2%)}50%{transform:translate(-1%,2%)}
-  67%{transform:translate(2%,1%)}84%{transform:translate(-2%,-1%)}
-  100%{transform:translate(0,0)}
-}
+    radial-gradient(128% 68% at 50% -12%, rgba(255,255,255,.06), transparent 56%),
+    radial-gradient(80% 44% at 50% 112%, rgba(255,255,255,.03), transparent 62%);
+  animation:atmIn 1.2s var(--e-primary) both, breathe 18s ease-in-out 1.2s infinite}
+.atm::after{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 84% 66% at 50% 44%, transparent 42%, rgba(0,0,0,.66) 100%)}
+.grain{position:absolute;inset:0;width:100%;height:100%;opacity:.042;mix-blend-mode:overlay}
+@keyframes atmIn{from{opacity:0}to{opacity:1}}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.74}}
 
-/* ══════════════ SHELL ══════════════ */
-.stage{position:relative;z-index:1;min-height:100svh;display:flex;flex-direction:column;
-  padding:calc(20px + var(--safe-t)) var(--gut) calc(20px + var(--safe-b))}
+/* ══════════════ SHELL ══════════════
+   Grid de 3 faixas: o espaço morto vira ritmo controlado. */
+.stage{position:relative;z-index:1;min-height:100svh;
+  display:grid;grid-template-rows:auto 1fr auto;
+  padding:calc(16px + var(--sat)) var(--gut) calc(16px + var(--sab))}
 @supports not (min-height:100svh){.stage{min-height:100vh}}
 
-/* topo: identificador editorial discreto */
-.meta{display:flex;align-items:center;gap:10px;flex:none;opacity:0;
-  animation:fadeIn var(--slow) var(--e-in) 1320ms forwards}
-.meta .id{font-family:var(--m);font-size:10.5px;letter-spacing:.2em;color:var(--ivory-3);text-transform:uppercase}
-.meta .sep{flex:1;height:1px;background:var(--line)}
-.meta .st{display:flex;align-items:center;gap:7px;font-family:var(--m);font-size:10.5px;
-  letter-spacing:.16em;color:var(--ivory-3);text-transform:uppercase}
-.meta .st i{width:4px;height:4px;border-radius:50%;background:var(--ivory-3);
-  animation:pulse 3.4s var(--e-tr) infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* ── topo: identificador de sistema ── */
+.sys{display:flex;align-items:center;gap:11px;height:34px;
+  font-family:var(--m);font-size:10px;letter-spacing:.19em;text-transform:uppercase;
+  color:var(--ivory-3);
+  opacity:0;animation:fadeIn var(--m-slow) var(--e-primary) 120ms forwards}
+.sys .rule{flex:1;height:1px;background:var(--line);
+  transform:scaleX(0);transform-origin:left;
+  animation:ruleIn var(--m-brand) var(--e-primary) 180ms forwards}
+@keyframes ruleIn{to{transform:scaleX(1)}}
 @keyframes fadeIn{to{opacity:1}}
 
-.core{flex:1;display:flex;flex-direction:column;justify-content:center;
-  padding:28px 0 24px;min-height:0}
+/* ── corpo ── */
+.body{display:flex;flex-direction:column;justify-content:flex-end;gap:clamp(30px,5.5vh,44px);
+  padding:clamp(48px,12vh,96px) 0 clamp(14px,2.4vh,22px);min-height:0}
 @media(min-width:1024px){
-  .core{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);
-    gap:clamp(48px,7vw,120px);align-items:center;padding:56px 0}
+  .body{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);
+    align-items:center;gap:clamp(56px,7vw,132px);padding:clamp(20px,4vh,48px) 0}
 }
 
-/* ══════════════ A PORTA ══════════════
-   O gesto assinatura: linha de luz que abre e revela a marca. */
-.door{position:relative;height:1px;width:100%;margin-bottom:30px;flex:none}
-.door i{position:absolute;top:0;left:50%;width:0;height:1px;
-  background:linear-gradient(90deg,transparent,var(--line-2) 18%,rgba(255,255,255,.5) 50%,var(--line-2) 82%,transparent);
-  transform:translateX(-50%);
-  animation:doorOpen var(--door) var(--e-in) 220ms forwards}
-@keyframes doorOpen{to{width:100%}}
-
-/* ══════════════ MARCA ══════════════ */
-.mark{overflow:hidden;flex:none}
-.mark img{display:block;height:clamp(30px,7.6vw,44px);width:auto;
-  transform:translateY(110%);
-  animation:riseUp var(--slow) var(--e-in) 520ms forwards}
-@media(min-width:1024px){.mark img{height:clamp(40px,3.4vw,54px)}}
-@keyframes riseUp{to{transform:translateY(0)}}
+/* ══════════════ BRAND MOMENT — a assinatura ══════════════
+   A marca chega desfocada e resolve para foco, como uma lente
+   estabilizando. Um efeito, uma vez, nunca repetido. */
+.brand{display:block;height:clamp(29px,7.4vw,40px);width:auto;
+  filter:blur(11px);opacity:0;transform:scale(1.035);
+  animation:resolve var(--m-brand) var(--e-primary) 260ms forwards}
+@media(min-width:1024px){.brand{height:clamp(38px,3vw,50px)}}
+@keyframes resolve{
+  0%{filter:blur(11px);opacity:0;transform:scale(1.035)}
+  55%{opacity:1}
+  100%{filter:blur(0);opacity:1;transform:scale(1)}
+}
 
 /* ══════════════ TIPOGRAFIA ══════════════ */
-.headline{margin-top:clamp(22px,5vw,34px)}
-.headline .ln{overflow:hidden}
-.headline .ln > span{display:block;
-  font-size:clamp(29px,8.2vw,52px);font-weight:600;line-height:1.08;letter-spacing:-.042em;
-  transform:translateY(108%)}
-.headline .ln:nth-child(1) > span{animation:riseUp var(--slow) var(--e-in) 760ms forwards}
-.headline .ln{padding-bottom:.06em}
-.headline .ln:nth-child(2) > span{animation:riseUp var(--slow) var(--e-in) 830ms forwards}
-.headline em{font-style:normal;color:var(--ivory-3)}
-@media(min-width:1024px){.headline .ln > span{font-size:clamp(46px,4.4vw,66px)}}
+.claim{margin-top:clamp(20px,4.4vh,30px)}
+.claim .ln{overflow:hidden;padding-bottom:.055em}
+.claim .ln>span{display:block;
+  font-size:clamp(30px,8.6vw,44px);font-weight:600;line-height:1.06;letter-spacing:-.042em;
+  transform:translateY(105%);
+  animation:rise var(--m-slow) var(--e-primary) forwards}
+.claim .ln:nth-child(1)>span{animation-delay:620ms}
+.claim .ln:nth-child(2)>span{animation-delay:700ms}
+.claim b{font-weight:600;color:var(--ivory-3)}
+@media(min-width:1024px){.claim .ln>span{font-size:clamp(42px,4vw,60px)}}
+@keyframes rise{to{transform:translateY(0)}}
 
-.lede{margin-top:clamp(16px,3.4vw,22px);max-width:34ch;
-  font-size:clamp(14px,3.5vw,15.5px);line-height:1.62;color:var(--ivory-2);font-weight:400;
-  opacity:0;animation:fadeIn var(--slow) var(--e-in) 940ms forwards}
-@media(min-width:1024px){.lede{font-size:16.5px;max-width:38ch}}
+.support{margin-top:clamp(15px,3vh,20px);max-width:31ch;
+  font-size:clamp(13.5px,3.4vw,15px);line-height:1.58;color:var(--ivory-2);font-weight:400;
+  opacity:0;animation:fadeIn var(--m-slow) var(--e-primary) 820ms forwards}
+@media(min-width:1024px){.support{font-size:16px;max-width:36ch}}
 
-/* ══════════════ AS DUAS DECISÕES ══════════════ */
-.options{margin-top:clamp(34px,7vw,46px);border-top:1px solid var(--line)}
-@media(min-width:1024px){.options{margin-top:0;border-top:none}}
+/* ══════════════ AS DUAS DECISÕES ══════════════
+   Superfície própria com profundidade — não linha de menu.
+   Sem numeração: não é sequência, é escolha paralela. */
+.acts{display:flex;flex-direction:column;gap:9px}
 
-.opt{display:flex;align-items:center;gap:18px;width:100%;text-align:left;
-  padding:clamp(19px,4.6vw,24px) 0;border-bottom:1px solid var(--line);
-  position:relative;opacity:0;
-  transition:opacity var(--fast) var(--e-tr)}
-.opt:nth-of-type(1){animation:optIn var(--slow) var(--e-in) 1080ms both}
-.opt:nth-of-type(2){animation:optIn var(--slow) var(--e-in) 1170ms both}
-@keyframes optIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.act{position:relative;display:flex;align-items:center;gap:16px;
+  min-height:76px;padding:18px 18px 18px 20px;
+  border:1px solid var(--line);border-radius:13px;
+  background:linear-gradient(180deg,var(--lift),var(--deep));
+  overflow:hidden;isolation:isolate;
+  opacity:0;
+  transition:border-color var(--m-base) var(--e-state),transform var(--m-fast) var(--e-state)}
+.act:nth-of-type(1){animation:actIn var(--m-slow) var(--e-primary) 940ms both}
+.act:nth-of-type(2){animation:actIn var(--m-slow) var(--e-primary) 1010ms both}
+@keyframes actIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media(min-width:1024px){.act{min-height:92px;padding:22px 22px 22px 26px}}
 
-/* saída: quando a escolha acontece, a animação de entrada é descartada
-   e o estado passa a ser controlado por transição — senão o fill-mode
-   da entrada venceria e nada recuaria. */
-.leaving .opt{animation:none}
+/* campo de luz que varre da esquerda no toque/hover */
+.act::before{content:'';position:absolute;inset:0;z-index:-1;
+  background:radial-gradient(120% 180% at 0% 50%, rgba(244,243,241,.10), transparent 62%);
+  opacity:0;transition:opacity var(--m-base) var(--e-state)}
+/* fio de luz na borda superior — profundidade espacial */
+.act::after{content:'';position:absolute;top:0;left:14px;right:14px;height:1px;z-index:-1;
+  background:linear-gradient(90deg,transparent,rgba(244,243,241,.22),transparent);
+  opacity:0;transition:opacity var(--m-base) var(--e-state)}
 
-/* fundo que preenche a partir da esquerda: resposta física ao toque */
-.opt::before{content:'';position:absolute;left:calc(var(--gut) * -1);right:calc(var(--gut) * -1);
-  top:0;bottom:0;background:var(--ink-1);transform:scaleX(0);transform-origin:left center;
-  transition:transform var(--base) var(--e-in);z-index:-1}
-.opt .idx{font-family:var(--m);font-size:11px;letter-spacing:.16em;color:var(--ivory-3);
-  flex:none;width:22px;transition:color var(--base) var(--e-tr)}
-.opt .body{flex:1;min-width:0}
-.opt .lb{text-wrap:balance}
-.opt .lb{display:block;font-size:clamp(17px,4.6vw,20px);font-weight:600;letter-spacing:-.025em;line-height:1.2}
-.opt .sub{display:block;margin-top:5px;font-size:13px;color:var(--ivory-3);line-height:1.45;
-  transition:color var(--base) var(--e-tr)}
-.opt .arw{flex:none;width:26px;height:26px;display:grid;place-items:center;color:var(--ivory-3);
-  transition:transform var(--base) var(--e-in),color var(--base) var(--e-tr)}
-.opt .arw svg{width:17px;height:17px}
-@media(min-width:1024px){
-  .opt{padding:26px 0}
-  .opt .lb{font-size:21px}
-}
+.act .txt{flex:1;min-width:0}
+.act .lb{display:block;font-size:clamp(16.5px,4.3vw,19px);font-weight:600;
+  letter-spacing:-.026em;line-height:1.22;
+  transition:transform var(--m-base) var(--e-primary)}
+.act .hint{display:block;margin-top:5px;font-size:12.5px;line-height:1.4;color:var(--ivory-3);
+  transition:color var(--m-base) var(--e-state),transform var(--m-base) var(--e-primary)}
+@media(min-width:1024px){.act .lb{font-size:20px}.act .hint{font-size:13px}}
 
-/* estados — hover só onde existe ponteiro */
+.act .go{flex:none;width:34px;height:34px;border-radius:50%;
+  border:1px solid var(--line-2);display:grid;place-items:center;color:var(--ivory-3);
+  transition:transform var(--m-base) var(--e-primary),border-color var(--m-base) var(--e-state),
+             color var(--m-base) var(--e-state),background var(--m-base) var(--e-state)}
+.act .go svg{width:15px;height:15px}
+
+.act.primary{border-color:var(--line-2)}
+.act.primary .go{border-color:rgba(244,243,241,.32);color:var(--ivory-2)}
+
 @media(hover:hover){
-  .opt:hover::before{transform:scaleX(1)}
-  .opt:hover .arw{transform:translateX(6px);color:var(--ivory)}
-  .opt:hover .idx{color:var(--accent)}
-  .opt:hover .sub{color:var(--ivory-2)}
+  .act:hover{border-color:var(--line-2);transform:translateY(-1px)}
+  .act:hover::before,.act:hover::after{opacity:1}
+  .act:hover .lb,.act:hover .hint{transform:translateX(4px)}
+  .act:hover .hint{color:var(--ivory-2)}
+  .act:hover .go{transform:translateX(4px);background:var(--ivory);border-color:var(--ivory);color:var(--void)}
+  /* o não escolhido recua discretamente */
+  .acts:hover .act:not(:hover){opacity:.62;border-color:var(--line)}
 }
-.opt:active{transform:scale(.994)}
-.opt:active::before{transform:scaleX(1)}
-.opt.primary .lb{font-weight:700}
+.act:active{transform:scale(.988)}
+.act:active::before{opacity:1}
 
-/* estado de saída: a opção escolhida ganha foco, o resto recua */
-.leaving .opt:not(.chosen){opacity:.22;transition:opacity var(--base) var(--e-tr)}
-.leaving .opt.chosen{opacity:1}
-.leaving .headline,.leaving .lede,.leaving .mark,.leaving .meta,.leaving .foot{
-  animation:none;opacity:.3;transition:opacity var(--base) var(--e-tr)}
-.opt.chosen .arw{transform:translateX(14px);color:var(--ivory)}
-.opt.chosen::before{transform:scaleX(1)}
-
-/* aviso de canal pendente — some quando a URL real entrar */
-.pending{margin-top:14px;display:inline-flex;align-items:center;gap:8px;
-  font-family:var(--m);font-size:10px;letter-spacing:.08em;
-  color:var(--ivory-3);border:1px solid var(--line);border-radius:4px;padding:6px 9px;
-  opacity:0;animation:fadeIn var(--slow) var(--e-in) 1400ms forwards}
-.pending::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--ivory-3);flex:none}
-
-/* rodapé */
-.foot{flex:none;display:flex;align-items:center;gap:12px;padding-top:18px;border-top:1px solid var(--line);
-  font-family:var(--m);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ivory-3);
-  opacity:0;animation:fadeIn var(--slow) var(--e-in) 1400ms forwards}
+/* ── rodapé ── */
+.foot{display:flex;align-items:center;height:34px;
+  font-family:var(--m);font-size:10px;letter-spacing:.19em;text-transform:uppercase;
+  color:var(--ivory-3);border-top:1px solid var(--line);padding-top:14px;
+  opacity:0;animation:fadeIn var(--m-slow) var(--e-primary) 1140ms forwards}
 .foot .r{margin-left:auto}
 
-/* camada de transição na saída */
-.veil{position:fixed;inset:0;z-index:60;background:var(--black);pointer-events:none;
-  opacity:0;transition:opacity var(--base) var(--e-out)}
+/* ── transição de saída ── */
+.veil{position:fixed;inset:0;z-index:60;background:var(--void);pointer-events:none;
+  opacity:0;transition:opacity var(--m-base) var(--e-exit)}
 .veil.on{opacity:1}
+.leaving .act{animation:none}
+.leaving .acts .act:not(.chosen),.acts:hover .leaving .act:not(.chosen),
+.stage.leaving .act:not(.chosen){opacity:.2!important;transition:opacity var(--m-base) var(--e-state)}
+.leaving .act.chosen{opacity:1;border-color:var(--line-2)}
+.leaving .act.chosen::before,.leaving .act.chosen::after{opacity:1}
+.leaving .act.chosen .go{transform:translateX(10px);background:var(--ivory);
+  border-color:var(--ivory);color:var(--void)}
+.leaving .brand,.leaving .claim,.leaving .support,.leaving .sys,.leaving .foot{
+  animation:none;opacity:.26;transition:opacity var(--m-base) var(--e-state)}
 
 /* ══════════════ REDUCED MOTION ══════════════
-   Sem movimento — mas a composição continua completa e bonita. */
+   Sem movimento. Composição íntegra — a marca já nasce nítida. */
 @media(prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
-    transition-duration:.01ms!important}
-  .atmos,.meta,.lede,.opt,.foot,.pending{opacity:1!important}
-  .mark img,.headline .ln > span{transform:none!important}
-  .door i{width:100%!important}
-  .atmos .glow,.atmos .grain,.meta .st i{animation:none!important}
+  *,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;
+    transition-duration:1ms!important}
+  .brand{filter:none!important;opacity:1!important;transform:none!important}
+  .claim .ln>span{transform:none!important}
+  .sys,.support,.act,.foot{opacity:1!important}
+  .sys .rule{transform:scaleX(1)!important}
 }
