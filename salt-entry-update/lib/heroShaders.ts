@@ -1,10 +1,24 @@
 // Raw WebGL1 (GLSL ES 1.00) shaders for the Salt hero background.
 //
-// Domain-warped fractal-Brownian-motion field (Ashima Arts 2D simplex noise +
-// Inigo Quilez-style nested warping). Color ramp and a couple of
-// orientation-aware uniforms are tuned to match this app's existing --void /
-// --d1 / --d2 / --ivory palette (see app/globals.css) — fully desaturated,
-// no blue tint, consistent with the rest of the site.
+// v3 — same motion core as v1/v2 (domain-warped fbm, Ashima Arts simplex
+// noise, portrait-aware framing), with three added layers requested for
+// the "luxury technology company" pass:
+//
+//   1. data traces  — thin traveling isolines pulled straight out of the
+//      existing noise field (no extra noise cost), read as signal/telemetry
+//      rather than literal wires. Confined to the dark valleys only.
+//   2. tech grid    — a faint coordinate grid, warped by the same domain
+//      warp vectors as the metal so it feels like one computational
+//      surface, not a UI overlay laid on top.
+//   3. far plane    — a second, coarser/slower fbm evaluated behind the
+//      main field: a real second motion frequency, which combined with
+//      u_mouse/u_scroll-driven offsets at a different rate than the near
+//      field gives an actual parallax depth cue instead of a flat card.
+//
+// u_touch is a soft, decaying light bloom at the last touch point (mobile
+// touch response). u_scroll drives a very small camera dolly + shifts the
+// existing specular streak, so the background answers scroll without ever
+// looking like a UI reacting to it.
 
 export const VERT_SRC = `
 attribute vec2 a_pos;
@@ -17,6 +31,8 @@ uniform vec2 u_resolution;
 uniform float u_time;
 uniform vec2 u_mouse;
 uniform float u_octaves;
+uniform vec3 u_touch;   // xy: normalized touch point (-1..1), z: pulse 0..1
+uniform float u_scroll; // 0..1, smoothed
 
 vec3 mod289(vec3 x){ return x - floor(x*(1.0/289.0))*289.0; }
 vec2 mod289(vec2 x){ return x - floor(x*(1.0/289.0))*289.0; }
@@ -64,6 +80,8 @@ float warped(vec2 p, float oct, out vec2 q, out vec2 r){
   return fbm(p + 3.4*r, oct);
 }
 
+float lineMask(float d, float w){ return 1.0 - smoothstep(0.0, w, abs(d)); }
+
 void main(){
   vec2 res = u_resolution;
   float aspect = res.x / res.y;
@@ -72,6 +90,11 @@ void main(){
   vec2 uv = (gl_FragCoord.xy - 0.5*res) / res.y;
   uv.y += 0.12 * portrait;
   uv += u_mouse * mix(0.05, 0.022, portrait);
+
+  /* scroll dolly: a very small push-in + upward drift, so the background
+     reads as a camera move rather than a page reacting to scroll */
+  uv *= mix(1.0, 0.945, u_scroll);
+  uv.y -= 0.03 * u_scroll;
 
   float uvScale = mix(1.55, 1.05, portrait);
   float speed = mix(0.026, 0.02, portrait);
@@ -84,16 +107,48 @@ void main(){
   /* fully desaturated ramp: --void #000 -> --d1 #040405 -> --d2 #08080a ->
      mid steel gray -> --ivory #f5f4f2. No hue at all, matching the rest
      of the site's editorial, zero-color palette. */
-  vec3 col = mix(vec3(0.0,0.0,0.0), vec3(0.0157,0.0157,0.0196), smoothstep(-0.5, 0.15, n));
-  col = mix(col, vec3(0.031,0.031,0.039), smoothstep(0.05, 0.5, n));
-  col = mix(col, vec3(0.30,0.30,0.30), smoothstep(0.48, 0.78, n));
-  col = mix(col, vec3(0.96,0.957,0.949), smoothstep(0.76, 0.99, n));
+  vec3 col = mix(vec3(0.0,0.0,0.0), vec3(0.024,0.024,0.030), smoothstep(-0.6, 0.05, n));
+  col = mix(col, vec3(0.075,0.075,0.086), smoothstep(-0.05, 0.4, n));
+  col = mix(col, vec3(0.34,0.34,0.34), smoothstep(0.32, 0.68, n));
+  col = mix(col, vec3(0.96,0.957,0.949), smoothstep(0.66, 0.95, n));
 
-  float streak = (1.0 - portrait) * smoothstep(0.63, 0.67, fbm(p*2.4 + r*1.6, u_octaves)) * 0.32;
+  /* ---------- far plane: a second, slower motion frequency behind the
+     near field. Offset by mouse/scroll at a different rate than the near
+     field above -- that mismatch IS the parallax depth cue. ---------- */
+  vec2 farP = uv*0.5 + u_mouse*0.012 + vec2(t*0.09, -t*0.05) + vec2(0.0, u_scroll*0.05);
+  float farN = fbm(farP, min(u_octaves, 3.0));
+  vec3 farTint = mix(vec3(0.0,0.0,0.0), vec3(0.05,0.052,0.06), smoothstep(-0.2, 0.6, farN));
+  col = mix(farTint, col, 0.88);
+
+  /* ---------- data traces: thin isolines of the same field, animated in
+     phase so they travel like signal along the metal's contours. Kept to
+     the dark valleys only -- never drawn over the bright highlight. ---- */
+  float darkMask = 1.0 - smoothstep(0.02, 0.55, n);
+  float iso = fract(n*5.0 - u_time*0.05);
+  float trace = lineMask(iso - 0.5, 0.035) * darkMask;
+  trace *= 0.16 + 0.1*sin(u_time*0.6 + q.x*4.0);
+  col += trace * vec3(0.55,0.57,0.62);
+
+  /* ---------- tech grid: faint coordinate plane warped by the same
+     domain-warp vectors as the metal, so it bends with the material
+     instead of sitting on top of it like a UI layer. ---------- */
+  vec2 gp = uv * mix(3.4, 4.2, portrait) + r*0.18 + vec2(0.0, u_scroll*0.08 - t*0.015);
+  vec2 gUv = fract(gp) - 0.5;
+  float grid = max(lineMask(gUv.x, 0.006), lineMask(gUv.y, 0.006));
+  grid *= 0.05 * darkMask;
+  col += grid * vec3(0.7,0.73,0.8);
+
+  /* ---------- specular streak (v2), now shifted slightly by scroll ---- */
+  float streak = (1.0 - portrait) * smoothstep(0.55, 0.6, fbm(p*2.4 + r*1.6 + vec2(u_scroll*0.4,0.0), u_octaves)) * 0.4;
   col += streak * vec3(0.96, 0.957, 0.949);
 
-  float vig = smoothstep(1.15, 0.15, length(uv));
-  col *= mix(0.28, 1.0, vig);
+  /* ---------- touch response: soft decaying light bloom (mobile) ------ */
+  float touchD = length(uv - u_touch.xy);
+  float touchGlow = smoothstep(0.55, 0.0, touchD) * u_touch.z * 0.22;
+  col += touchGlow * vec3(0.92,0.94,0.98);
+
+  float vig = smoothstep(1.25, 0.1, length(uv));
+  col *= mix(0.42, 1.0, vig);
 
   float dither = (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898,78.233))) * 43758.5453) - 0.5) / 255.0;
   col += dither;

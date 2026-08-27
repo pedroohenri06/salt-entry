@@ -5,9 +5,10 @@ import { VERT_SRC, FRAG_SRC } from '@/lib/heroShaders';
 import { LINKS, track } from '@/config/links';
 import styles from './SaltHeroV2.module.css';
 
-/* Salt hero v2 — WebGL domain-warped background + silver-sweep headline.
-   Client component: the shader loop and pointer tracking need the DOM,
-   but the copy itself is plain server-renderable markup underneath. */
+/* Salt hero v3 — WebGL domain-warped background (data traces + tech grid +
+   far plane added on top of the v2 motion), silver-sweep + mouse-reactive
+   glint headline, and a mobile track that gets its own gyro/touch-driven
+   parallax instead of a scaled-down copy of the desktop interaction. */
 
 function compile(gl: WebGLRenderingContext, type: number, src: string) {
   const s = gl.createShader(type)!;
@@ -16,9 +17,15 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
   return s;
 }
 
+type DeviceOrientationEventWithPermission = typeof DeviceOrientationEvent & {
+  requestPermission?: () => Promise<'granted' | 'denied'>;
+};
+
 export default function SaltHeroV2() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
+  const headlineRef = useRef<HTMLDivElement>(null);
+  const heroContentRef = useRef<HTMLDivElement>(null);
   const [glOk, setGlOk] = useState(true);
 
   useEffect(() => { track('entry_view'); }, []);
@@ -55,11 +62,25 @@ export default function SaltHeroV2() {
     const uTime = gl.getUniformLocation(prog, 'u_time');
     const uMouse = gl.getUniformLocation(prog, 'u_mouse');
     const uOct = gl.getUniformLocation(prog, 'u_octaves');
+    const uTouch = gl.getUniformLocation(prog, 'u_touch');
+    const uScroll = gl.getUniformLocation(prog, 'u_scroll');
 
-    const mouse = { x: 0, y: 0 };
-    const mouseTarget = { x: 0, y: 0 };
     const isTouch = window.matchMedia('(pointer: coarse)').matches;
     let isSmall = false;
+
+    // ---- parallax source: pointer on desktop, gyro (+ idle drift fallback
+    // while no gyro data has arrived yet) on touch devices ----
+    const mouse = { x: 0, y: 0 };
+    const mouseTarget = { x: 0, y: 0 };
+    let gyroActive = false;
+
+    // ---- touch light bloom: decays after each touch, never follows the
+    // finger continuously (that would read as a cursor, not a reaction) ----
+    const touch = { x: 0, y: 0, strength: 0 };
+
+    // ---- scroll dolly ----
+    let scroll = 0;
+    let scrollTarget = 0;
 
     function resize() {
       isSmall = window.innerWidth < 720;
@@ -80,24 +101,113 @@ export default function SaltHeroV2() {
       mouseTarget.x = (e.clientX / window.innerWidth - 0.5) * 2;
       mouseTarget.y = (e.clientY / window.innerHeight - 0.5) * -2;
     }
-    if (!isTouch) window.addEventListener('pointermove', onPointerMove);
+    if (!isTouch && !reduceMotion) window.addEventListener('pointermove', onPointerMove);
+
+    // ---- gyroscope (mobile only): tiny, heavily smoothed tilt ----
+    function onOrientation(e: DeviceOrientationEvent) {
+      if (e.beta === null || e.gamma === null) return;
+      gyroActive = true;
+      const gamma = Math.max(-24, Math.min(24, e.gamma)) / 24; // left/right
+      const beta = Math.max(-14, Math.min(28, e.beta - 6)) / 24; // front/back, biased for hand-held tilt
+      mouseTarget.x = gamma;
+      mouseTarget.y = -beta;
+    }
+
+    let removeOrientation: (() => void) | null = null;
+    if (isTouch && !reduceMotion && typeof DeviceOrientationEvent !== 'undefined') {
+      const DOE = DeviceOrientationEvent as DeviceOrientationEventWithPermission;
+      if (typeof DOE.requestPermission === 'function') {
+        // iOS: permission needs a user gesture. Piggyback on the first tap
+        // anywhere, no extra UI/button added for it.
+        const grant = () => {
+          DOE.requestPermission!()
+            .then((state) => {
+              if (state === 'granted') {
+                window.addEventListener('deviceorientation', onOrientation);
+                removeOrientation = () => window.removeEventListener('deviceorientation', onOrientation);
+              }
+            })
+            .catch(() => {});
+          window.removeEventListener('touchend', grant);
+        };
+        window.addEventListener('touchend', grant, { once: true });
+      } else {
+        window.addEventListener('deviceorientation', onOrientation);
+        removeOrientation = () => window.removeEventListener('deviceorientation', onOrientation);
+      }
+    }
+
+    // ---- touch response: a soft bloom that fades on its own ----
+    function onTouch(e: TouchEvent) {
+      const p = e.touches[0];
+      if (!p) return;
+      touch.x = (p.clientX / window.innerWidth - 0.5) * 2;
+      touch.y = (p.clientY / window.innerHeight - 0.5) * -2;
+      touch.strength = 1.0;
+    }
+    if (isTouch && !reduceMotion) {
+      window.addEventListener('touchstart', onTouch, { passive: true });
+      window.addEventListener('touchmove', onTouch, { passive: true });
+    }
+
+    // ---- scroll: normalized against a short range, so even the small
+    // rubber-band bounce on mobile reads as a gentle camera push-in ----
+    function onScroll() {
+      scrollTarget = Math.max(0, Math.min(1, window.scrollY / 320));
+    }
+    if (!reduceMotion) window.addEventListener('scroll', onScroll, { passive: true });
+
+    const headline = headlineRef.current;
+    const glow = glowRef.current;
+    const heroContent = heroContentRef.current;
 
     let start: number | null = null;
     let frozen = 0;
     let raf = 0;
+    let idleSeed = Math.random() * 100;
 
     function frame(ts: number) {
       if (start === null) start = ts;
       const elapsed = reduceMotion ? 0 : (ts - start) / 1000;
 
-      mouse.x += (mouseTarget.x - mouse.x) * 0.04;
-      mouse.y += (mouseTarget.y - mouse.y) * 0.04;
+      // idle autonomous drift for touch devices with no gyro signal yet —
+      // keeps mobile alive instead of a static frozen background
+      if (isTouch && !gyroActive && !reduceMotion) {
+        mouseTarget.x = Math.sin(elapsed * 0.13 + idleSeed) * 0.32;
+        mouseTarget.y = Math.cos(elapsed * 0.1 + idleSeed) * 0.22;
+      }
+
+      mouse.x += (mouseTarget.x - mouse.x) * (isTouch ? 0.03 : 0.045);
+      mouse.y += (mouseTarget.y - mouse.y) * (isTouch ? 0.03 : 0.045);
+      scroll += (scrollTarget - scroll) * 0.06;
+      touch.strength *= 0.93;
 
       gl!.uniform2f(uRes, canvas!.width, canvas!.height);
       gl!.uniform1f(uTime, elapsed);
       gl!.uniform2f(uMouse, mouse.x, mouse.y);
       gl!.uniform1f(uOct, isSmall ? 3.0 : 5.0);
+      gl!.uniform3f(uTouch, touch.x, touch.y, touch.strength);
+      gl!.uniform1f(uScroll, scroll);
       gl!.drawArrays(gl!.TRIANGLES, 0, 3);
+
+      // cursor glow (desktop) — one shared loop instead of a second RAF
+      if (glow && !isTouch && !reduceMotion) {
+        glow.style.transform = `translate(${(mouse.x * 0.5 + 0.5) * window.innerWidth}px, ${(0.5 - mouse.y * 0.5) * window.innerHeight}px)`;
+      }
+
+      // headline: subtle physical tilt + a mouse/gyro-reactive glint
+      // position, layered on top of the automatic silver sweep so the
+      // reflection answers both time (ambient) and viewer position (real).
+      if (headline && !reduceMotion) {
+        headline.style.setProperty('--tiltx', (mouse.x * 3).toFixed(2) + 'deg');
+        headline.style.setProperty('--tilty', (mouse.y * -2.4).toFixed(2) + 'deg');
+        headline.style.setProperty('--gx', (50 + mouse.x * 38).toFixed(1) + '%');
+        headline.style.setProperty('--gy', (46 - mouse.y * 30).toFixed(1) + '%');
+      }
+
+      if (heroContent && !reduceMotion) {
+        heroContent.style.transform = `translateY(${(-scroll * 14).toFixed(2)}px)`;
+      }
 
       if (!reduceMotion || frozen < 2) {
         if (reduceMotion) frozen++;
@@ -109,6 +219,10 @@ export default function SaltHeroV2() {
     return () => {
       window.removeEventListener('resize', resize);
       window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('touchstart', onTouch);
+      window.removeEventListener('touchmove', onTouch);
+      window.removeEventListener('scroll', onScroll);
+      if (removeOrientation) removeOrientation();
       cancelAnimationFrame(raf);
     };
   }, []);
@@ -118,28 +232,9 @@ export default function SaltHeroV2() {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const isTouch = window.matchMedia('(pointer: coarse)').matches;
     if (!glow || isTouch || reduceMotion) return;
-
-    let gx = 0, gy = 0, tx = 0, ty = 0;
-    let raf = 0;
-
-    function onPointerMove(e: PointerEvent) {
-      tx = e.clientX; ty = e.clientY;
-      glow!.classList.add(styles.active);
-    }
-    window.addEventListener('pointermove', onPointerMove);
-
-    function loop() {
-      gx += (tx - gx) * 0.12;
-      gy += (ty - gy) * 0.12;
-      glow!.style.transform = `translate(${gx}px, ${gy}px)`;
-      raf = requestAnimationFrame(loop);
-    }
-    raf = requestAnimationFrame(loop);
-
-    return () => {
-      window.removeEventListener('pointermove', onPointerMove);
-      cancelAnimationFrame(raf);
-    };
+    function onPointerMove() { glow!.classList.add(styles.active); }
+    window.addEventListener('pointermove', onPointerMove, { once: true });
+    return () => window.removeEventListener('pointermove', onPointerMove);
   }, []);
 
   function handleCtaClick(href: string, event: 'commercial_click' | 'website_click') {
@@ -171,15 +266,21 @@ export default function SaltHeroV2() {
       </nav>
 
       <main className={styles.heroMain}>
-        <div className={styles.heroContent}>
+        <div className={styles.heroContent} ref={heroContentRef}>
           <p className={`${styles.eyebrow} ${styles.reveal} ${styles.r2}`}>
             Tecnologia. Branding. Performance.
           </p>
-          <div className={`${styles.headlineWrap} ${styles.reveal} ${styles.r3}`}>
+          <div
+            className={`${styles.headlineWrap} ${styles.reveal} ${styles.r3}`}
+            ref={headlineRef}
+          >
             <h1 className={styles.h1}>
               Construímos experiências que <em>movem</em> negócios.
             </h1>
             <h1 className={styles.headlineSweep} aria-hidden="true">
+              Construímos experiências que <em>movem</em> negócios.
+            </h1>
+            <h1 className={styles.headlineGlint} aria-hidden="true">
               Construímos experiências que <em>movem</em> negócios.
             </h1>
           </div>

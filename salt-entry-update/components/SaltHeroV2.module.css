@@ -153,6 +153,7 @@
   align-items: center;
   gap: clamp(1.4rem, 3vw, 1.9rem);
   transform: translateZ(0);
+  will-change: transform;
 }
 
 .eyebrow{
@@ -167,6 +168,13 @@
 .headlineWrap{
   position: relative;
   display: grid;
+  perspective: 1100px;
+}
+.headlineWrap .h1,
+.headlineWrap .headlineSweep,
+.headlineWrap .headlineGlint{
+  transform: perspective(1100px) rotateX(var(--tilty, 0deg)) rotateY(var(--tiltx, 0deg));
+  transform-style: preserve-3d;
 }
 
 .h1{
@@ -231,6 +239,34 @@
   32%{ background-position: -50% 0; }
   100%{ background-position: -50% 0; }
 }
+
+/* glint: a second, small, mouse/gyro-positioned highlight -- the ambient
+   sweep above is "light moving over time"; this one is "the surface
+   answering where you're looking from", the two together read as a real
+   reflection instead of a single looping CSS gradient. */
+.headlineGlint{
+  grid-area: 1 / 1;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 620;
+  font-size: clamp(2.5rem, 6.4vw, 5rem);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  color: transparent;
+  pointer-events: none;
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-image: radial-gradient(
+    circle at var(--gx, 50%) var(--gy, 40%),
+    rgba(255,255,255,0.55) 0%,
+    rgba(255,255,255,0.16) 22%,
+    rgba(255,255,255,0) 46%
+  );
+  mix-blend-mode: screen;
+  transition: opacity 0.5s ease;
+}
+.headlineGlint em{ font-family: var(--font-accent); font-style: italic; font-weight: 400; }
 
 .subhead{
   margin: 0;
@@ -309,10 +345,18 @@
   .bgFallback{ animation: none; }
   .cursorGlow{ display: none; }
   .headlineSweep{ animation: none; opacity: 0; }
+  .headlineGlint{ opacity: 0; }
+  .headlineWrap .h1,
+  .headlineWrap .headlineSweep,
+  .headlineWrap .headlineGlint{ transform: none; }
+  .heroContent{ transform: none !important; }
 }
 
 @media (max-width: 720px){
   .headlineSweep{ animation-duration: 5.5s; }
+  /* the glint is gyro-driven on touch, not pointer -- keep it a touch
+     softer there so it never fights the automatic sweep for attention */
+  .headlineGlint{ mix-blend-mode: screen; opacity: 0.8; }
 }
 
 @media (max-width: 480px){
