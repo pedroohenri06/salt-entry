@@ -33,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link rel="preload" as="image" href="/brand/salt-word.webp" fetchPriority="high" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Serif:ital@1&family=Manrope:wght@400;500;600;700&display=swap" />
       </head>
       <body>{children}</body>
     </html>
